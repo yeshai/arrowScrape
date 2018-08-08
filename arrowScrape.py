@@ -13,23 +13,22 @@ from selenium.common.exceptions import NoSuchElementException
 
 def connect_url(url):
     # instantiate a chrome options object so you can set the size and headless preference
+    '''
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--window-size=1920x1080")
     chromeDriverPath = 'C:\\Users\\Yeshai.Mishal\\installs\\chromedriver.exe'
     driver = webdriver.Chrome(chrome_options=chrome_options, executable_path=chromeDriverPath)
-
-    #driver = webdriver.Chrome()
+'''
+    driver = webdriver.Chrome()
     driver.implicitly_wait(10)
     driver.get(url)
     return driver
 
-base_url = 'https://www.digikey.com'
-dir1 = '/products/en?keywords='
-filepath = 'parts.txt'
+url = 'https://www.arrow.com/'
 master = {}  # 2D dict with all part info
 
-with open(filepath) as f:
+'''with open(filepath) as f:
     parts = list(f)
 
 for part in parts:
@@ -38,15 +37,31 @@ for part in parts:
     print(part)
     q_string = part
     url = base_url + dir1 + q_string
-    # connect to url and pull page source (HTML)
-    try:
-        driver = connect_url(url)
-        bsObj = BeautifulSoup(driver.page_source, 'lxml')
-        if len(bsObj) > 0:
-            print('page source aquired!')
-        else:
-            print('page source appears blank!')
-            pprint(bsObj)
-    except TimeoutException:
-        print('timeout error.')
-        driver.quit()
+    '''
+# connect to url and pull page source (HTML)
+try:
+    driver = connect_url(url)
+    driver.find_element_by_name("q").clear()
+    driver.find_element_by_name("q").send_keys("LT1763CS8-3#PBF")
+    driver.find_element_by_xpath(
+        "(.//*[normalize-space(text()) and normalize-space(.)='All Categories'])[1]/following::span[1]").click()
+    bsObj = BeautifulSoup(driver.page_source, 'lxml')
+    if len(bsObj) > 0:
+        print('page source aquired!')
+    else:
+        print('page source appears blank!')
+        pprint(bsObj)
+except TimeoutException:
+    print('timeout error.')
+    driver.quit()
+
+#key
+#Pdp-specifications > ul > li:nth-child(1) > div:nth-child(1)
+#value:
+#Pdp-specifications > ul > li:nth-child(1) > div:nth-child(2) > strong
+
+specTable = bsObj.find('',{'id':'Pdp-specifications'})
+specItems = specTable.findAll('div', {'class':'col-sm-6'})
+for specItem in specItems:
+    pprint(specItem.get_text())
+driver.quit()
