@@ -55,13 +55,12 @@ except TimeoutException:
     print('timeout error.')
     driver.quit()
 
-#key
-#Pdp-specifications > ul > li:nth-child(1) > div:nth-child(1)
-#value:
-#Pdp-specifications > ul > li:nth-child(1) > div:nth-child(2) > strong
-
 specTable = bsObj.find('',{'id':'Pdp-specifications'})
-specItems = specTable.findAll('div', {'class':'col-sm-6'})
+specItems = specTable.ul.findAll('li')
+print('KEY | VALUE')
 for specItem in specItems:
-    pprint(specItem.get_text())
+    specItem = specItem.findAll('div')
+    key = specItem[0].get_text().strip()
+    value = specItem[1].get_text().strip()
+    print(key + ' | ' + value)
 driver.quit()
