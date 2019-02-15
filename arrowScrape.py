@@ -1,6 +1,5 @@
 # SINGLE RESULT: 02013A101JAT2A
 # MULTIPLE RESULTS: 02013A1ROCAT2A
-# NO RESULT:
 
 from bs4 import BeautifulSoup, element
 import re
@@ -32,7 +31,7 @@ def connect_url(url):
     return driver
 
 url = 'https://www.arrow.com'
-filepath = 'part.txt'
+filepath = 'parts.txt'
 master = {}  # 2D dict with all part info
 
 with open(filepath) as f:
@@ -60,33 +59,69 @@ with open(filepath) as f:
         try:
             bsObj = BeautifulSoup(driver.page_source, 'lxml') #reload object for new page
             multipleResults = bsObj.find('h1',{'class':'SearchControls-heading SearchResultsCount'}) #results returned
-            if multipleResults:
-                print('multiple results = True')
+            if not(multipleResults):
+                print('multiple results = False')
+
+                resultTable = bsObj.find('div', {'class': 'PartSpecifications'})
+                # print('resultTable = ')
+                # pprint(resultTable)
+                partDict = {}
+                if resultTable:
+                    print('single result!')
+                    specTable = bsObj.find('', {'id': 'Pdp-specifications'})
+                    # print('specTable')
+                    #pprint(specTable)
+                    specItems = specTable.tbody.findAll('tr')
+                    print('KEY | VALUE')
+                    for specItem in specItems:
+                        specItem = specItem.findAll('td', {'class':"col-sm-6"})
+                        #print('specItem')
+                        #pprint(specItem)
+                        key = specItem[0].get_text().strip()
+                        #print('key: ' + key)
+                        value = specItem[1].get_text().strip()
+                        #print('value: ' + value)
+                        partDict[key] = value
+                        print(key + ' | ' + value)
+                        master[part] = partDict  # load part and properties into master dictionary
+
+                        # write data to JSON file
+                        with open('arrow_mult.json', 'w') as outfile:
+                            json.dump(master, outfile, sort_keys=True, indent=4)
+
+                    # read from JSON file
+                    with open('arrow_mult.json') as data_file:
+                       data = json.load(data_file)
+                else:
+                    driver.quit()
+                    continue
+            else:
                 currentUrl = driver.current_url
                 driver.quit()
-                currentUrl += '&perPage=100' #get 100 results per page
+                currentUrl += '&perPage=100'  # get 100 results per page
                 driver = connect_url(currentUrl)
 
-                #pprint(multipleResults)
+                # pprint(multipleResults)
 
-                tableRow = bsObj.find('tr',{'id':'item1'})
-                #print('tableRow = ')
-                #pprint(tableRow)
-                tableRows = bsObj.findAll('tr',{'class':'SearchResults-resultRow SearchResults-productRow SearchResults-resultRow--eccn'})
-                #print('tableRows = ')
-                #pprint(tableRows)
+                tableRow = bsObj.find('tr', {'id': 'item1'})
+                # print('tableRow = ')
+                # pprint(tableRow)
+                tableRows = bsObj.findAll('tr', {
+                    'class': 'SearchResults-resultRow SearchResults-productRow SearchResults-resultRow--eccn'})
+                # print('tableRows = ')
+                # pprint(tableRows)
                 for tableRow in tableRows:
-                    dataName = tableRow.attrs['data-name'] #part name
-                    dataUrl = tableRow.attrs['data-part-url'] #part link
-                    print ('dataName = ' + dataName )
+                    dataName = tableRow.attrs['data-name']  # part name
+                    dataUrl = tableRow.attrs['data-part-url']  # part link
+                    print('dataName = ' + dataName)
                     if dataName == part:
                         print('MATCH!')
                         print(dataName + ' = ' + part)
                         print('path = ' + dataUrl)
                         driver.quit()
-                        part_url= url + dataUrl
+                        part_url = url + dataUrl
                         driver = connect_url(part_url)
-                        bsObj = BeautifulSoup(driver.page_source, 'lxml') # reload object for new page
+                        bsObj = BeautifulSoup(driver.page_source, 'lxml')  # reload object for new page
                         resultTable = bsObj.find('div', {'class': 'PartSpecifications'})
                         # print('resultTable = ')
                         # pprint(resultTable)
@@ -95,17 +130,17 @@ with open(filepath) as f:
                             print('single result!')
                             specTable = bsObj.find('', {'id': 'Pdp-specifications'})
                             # print('specTable')
-                            #pprint(specTable)
+                            # pprint(specTable)
                             specItems = specTable.tbody.findAll('tr')
                             print('KEY | VALUE')
                             for specItem in specItems:
-                                specItem = specItem.findAll('td', {'class':"col-sm-6"})
-                                #print('specItem')
-                                #pprint(specItem)
+                                specItem = specItem.findAll('td', {'class': "col-sm-6"})
+                                # print('specItem')
+                                # pprint(specItem)
                                 key = specItem[0].get_text().strip()
-                                #print('key: ' + key)
+                                # print('key: ' + key)
                                 value = specItem[1].get_text().strip()
-                                #print('value: ' + value)
+                                # print('value: ' + value)
                                 partDict[key] = value
                                 print(key + ' | ' + value)
                                 master[part] = partDict  # load part and properties into master dictionary
@@ -116,37 +151,13 @@ with open(filepath) as f:
 
                             # read from JSON file
                             with open('arrow_mult.json') as data_file:
-                               data = json.load(data_file)
+                                data = json.load(data_file)
                     else:
                         driver.quit()
                         continue
 
         except TypeError:
-            print('multiple results = False')
-            #SINGLE RESULT PAGE
-            partDict = {}
-            #check for a single results returned
-            singleResult = bsObj.find('h1', {'class': 'Product-Summary-Name'})
-            if singleResult:
-                specTable = bsObj.find('',{'id':'Pdp-specifications'})
-                specItems = specTable.ul.findAll('li')
-                print('KEY | VALUE')
-                for specItem in specItems:
-                    specItem = specItem.findAll('div')
-                    key = specItem[0].get_text().strip()
-                    value = specItem[1].get_text().strip()
-                    partDict[key] = value
-                    print(key + ' | ' + value)
-                    master[part] = partDict  # load part and properties into master dictionary
-                    # write data to JSON file
-                    with open('arrow_mult.json', 'w') as outfile:
-                        json.dump(master, outfile, sort_keys=True, indent=4)
+            print('type errpor')
 
-                # read from JSON file
-                with open('arrow_mult.json') as data_file:
-                    data = json.load(data_file)
-            else:
-                driver.quit()
-                continue
     pprint(master)
     driver.quit()
